@@ -1,0 +1,59 @@
+operation create_task(title: text, description: text, due_date: timestamp) {
+    // Authentication
+    val account = auth.authenticate();
+    
+    // Input Validation
+    require(title.size() >= 1, "Title must be at least 1 character");
+    require(description.size() >= 1, "Description must be at least 1 character");
+    // require(due_date >= op_context.last_block_time, "Due date must be in the future");
+    
+    // User Resolution
+    val user = user @ { account };
+    // require(current_user != null, "User not found");
+    
+    // Todo Creation
+    create todo (
+        title = title,
+        description = description,
+        due_date = due_date,
+        status.PENDING,
+        user
+    );
+}
+
+operation update_status(todo_id: integer, status_front: text) {
+    val account = auth.authenticate();
+    val user = user @ { account };
+    val todo = todo @ { .rowid == rowid(todo_id) };
+    require(todo.user == user, "You are not authorized to edit this todo.");
+    if (status_front == "COMPLETED") {
+        update todo @ { .rowid == rowid(todo_id) } ( status.COMPLETED);
+    } else if (status_front == "PENDING") {
+        update todo @ { .rowid == rowid(todo_id) } ( status.PENDING);
+    }
+}
+
+operation update_task(todo_id: integer, title: text, description: text, due_date: timestamp, status_front: text) {
+    val account = auth.authenticate();
+    require(title.size() >= 1, "A  title should be at least have 1 letter.");
+    require(description.size() >= 1, "A description length should be minimum 1");
+    val user = user @ { account };
+    val todo = todo @ { .rowid == rowid(todo_id) };
+    require(todo.user == user, "You are not authorized to edit this todo.");
+    if (status_front == "COMPLETED") {
+        update todo @ { .rowid == rowid(todo_id) } ( title, description, due_date, status.COMPLETED);
+        update todo @ { .rowid == rowid(todo_id) } ( status.COMPLETED);
+    } else if (status_front == "PENDING") {
+        update todo @ { .rowid == rowid(todo_id) } ( title, description, due_date, status.PENDING);
+    }
+}
+
+operation delete_task(todo_id: integer) {
+    val account = auth.authenticate();
+    val user = user @ { account };
+    val todo = todo @ { .rowid == rowid(todo_id) };
+
+    require(todo.user == user, "You are not authorized to edit this todo.");
+
+    delete todo @ { .rowid == rowid(todo_id) };
+}

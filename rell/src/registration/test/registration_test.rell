@@ -1,0 +1,142 @@
+@test module;
+
+import ^^.*;
+import lib.ft4.accounts. { single_sig_auth_descriptor };
+import lib.ft4.auth. { evm_signatures };
+import lib.ft4.core.accounts.strategies.open. {ras_open};
+import lib.ft4.external.accounts.{add_auth_descriptor};
+import lib.ft4.external.accounts.strategies. { get_register_account_message };
+import lib.ft4.test.utils.{ ft_auth_operation_for, evm_auth_operation_for, evm_sign };
+
+
+val evm_address = x"1337c28e95ce85175af66353fecccd676e3d273a";
+val evm_privkey = x"18e2d37cd5b51555c52d454c22608dee5e7151384f2d7b7bc21616e2eadc3e6f";
+
+val evm_address_2 = x"0C4DA10E662E52E79DCC5C3F8EC74522CAE00AAB";
+val evm_privkey_2 = x"D863AE69C4251ABEEEC4D04114FA7E594F7B3DAD80A82CDC2B441B6642DC5FFC";
+
+function test_evm_registration() {
+    val alice_auth_desc = single_sig_auth_descriptor(evm_address, set(["A", "T"]));
+    val alice_session_1 = rell.test.keypairs.alice;
+    val session1_auth_desc = single_sig_auth_descriptor(alice_session_1.pub, set(["S"]));
+
+    val charlie_auth_desc = single_sig_auth_descriptor(evm_address_2, set(["A", "T"]));
+    val charlie_session_1 = rell.test.keypairs.charlie;
+    val charlie_session1_auth_desc = single_sig_auth_descriptor(charlie_session_1.pub, set(["S"]));
+
+    val strategy_op = ras_open(alice_auth_desc, session1_auth_desc);
+    val register_op = register_user("Alice");
+
+    val charlie_strategy_op = ras_open(charlie_auth_desc, charlie_session1_auth_desc);
+    val charlie_register_op = register_user("Charlie");
+
+    val message = get_register_account_message(
+        strategy_op.to_gtx_operation(),
+        register_op.to_gtx_operation()
+    );
+
+    val charlie_message = get_register_account_message(
+        charlie_strategy_op.to_gtx_operation(),
+        charlie_register_op.to_gtx_operation()
+    );
+
+    val signature = evm_sign(message, evm_privkey);
+    val charlie_signature = evm_sign(charlie_message, evm_privkey_2);
+
+    rell.test.tx()
+        .op(evm_signatures([evm_address], [signature]))
+        .op(strategy_op)
+        .op(register_op)
+        .sign(alice_session_1)
+        .run();
+
+    user @* { } ( @sum 1 );
+    assert_equals(user @ { } ( @sum 1 ), 1);
+    rell.test.tx()
+        .op(evm_signatures([evm_address_2], [charlie_signature]))
+        .op(charlie_strategy_op)
+        .op(charlie_register_op)
+        .sign(charlie_session_1)
+        .run();
+    assert_equals(user @ { } ( @sum 1 ), 2);
+
+    rell.test.tx()
+        .op(ft_auth_operation_for(alice_session_1.pub))
+        .op(create_task("Task Title", "Task Description", 1738052560000))
+        .sign(alice_session_1)
+        .run();
+    assert_equals(todo @ { } ( @sum 1 ), 1);
+
+
+
+     // Start a new session
+    val alice_session_2 = rell.test.keypairs.bob;
+    val session_auth_desc = single_sig_auth_descriptor(alice_session_2.pub, set(["S"]));
+    val add_auth_descriptor_operation = add_auth_descriptor(session_auth_desc);
+
+    // Add session token
+    rell.test.tx()
+        .op(evm_auth_operation_for(evm_privkey, add_auth_descriptor_operation))
+        .op(add_auth_descriptor_operation)
+        .sign(alice_session_2)
+        .run();
+
+    // Create another todo using session key
+    rell.test.tx()
+        .op(ft_auth_operation_for(alice_session_2.pub))
+        .op(create_task("Second Task Title", "Second Task Description", 1738052560000))
+        .sign(alice_session_2)
+        .run();
+    assert_equals(todo @ { } ( @sum 1 ), 2);
+
+
+    // Testing updates for todo tasks 
+    val todos = todo @* { };
+    rell.test.tx()
+        .op(ft_auth_operation_for(alice_session_2.pub))
+        .op(
+            update_task(
+                todos[1].rowid.to_integer(),
+                "New Title",
+                "Description Also changed",
+                1738052560000,
+                "COMPLETED"
+            )
+        )
+        .sign(alice_session_2)
+        .run();
+    val todo = todo @ { todos[1].rowid };
+    assert_equals(todo.title, "New Title");
+
+    // charlie cannot edit alice todo task
+    rell.test.tx()
+        .op(ft_auth_operation_for(charlie_session_1.pub))
+        .op(
+            update_task(
+                todos[0].rowid.to_integer(),
+                "New Title",
+                "Description Also changed",
+                1738052560000,
+                "PENDING"
+            )
+        )
+        .sign(charlie_session_1)
+        .run_must_fail();
+
+    // Deleting task from todo
+
+    rell.test.tx()
+        .op(ft_auth_operation_for(alice_session_2.pub))
+        .op(delete_task(todos[0].rowid.to_integer()))
+        .sign(alice_session_2)
+        .run();
+    // val todo = todo @ { todos[1].rowid };
+    assert_equals(todo @ { } ( @sum 1 ), 1);
+
+    // Charlie cannot delete task that created by another user
+    rell.test.tx()
+        .op(ft_auth_operation_for(charlie_session_1.pub))
+        .op(delete_task(todos[1].rowid.to_integer()))
+        .sign(charlie_session_1)
+        .run_must_fail();
+}

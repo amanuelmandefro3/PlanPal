@@ -1,0 +1,20 @@
+enum status {
+    PENDING,
+    IN_PROGRESS,
+    COMPLETED
+}
+
+entity user {
+    name: text;
+    key id: byte_array;
+    key account;
+}
+
+entity todo {
+    timestamp: timestamp = op_context.last_block_time;
+    mutable title: text;
+    mutable description: text;
+    mutable due_date: timestamp;
+    mutable status;
+    index user;
+}

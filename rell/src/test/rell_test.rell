@@ -1,0 +1,131 @@
+@test module;
+
+import ^.test_operations. { create_user };
+import ^^.main.*;
+import lib.ft4.test.utils. { ft_auth_operation_for };
+
+val alice = rell.test.pubkeys.alice;
+val bob = rell.test.pubkeys.bob;
+val charlie = rell.test.pubkeys.charlie;
+val alice_kp = rell.test.keypairs.alice;
+val bob_kp = rell.test.keypairs.bob;
+val charlie_kp = rell.test.keypairs.charlie;
+
+function test_create_entities() {
+    rell.test.tx()
+        .op(create_user("Alice", alice))
+        .op(create_user("Bob", bob))
+        .run();
+    assert_equals(user @ { } ( @sum 1 ), 2);
+    rell.test.tx()
+        .op(ft_auth_operation_for(alice))
+        .op(create_task("title", "description", 1738263599))
+        .sign(alice_kp)
+        .run();
+    assert_equals(todo @ { } ( @sum 1 ), 1);
+}
+
+function test_core_functionality_of_tasks() {
+    rell.test.tx()
+        .op(create_user("Alice", alice))
+        .op(create_user("Bob", bob))
+        .run();
+
+    for (i in range(5)) {
+        rell.test.tx()
+            .op(ft_auth_operation_for(bob))
+            .op(create_task("Title %d".format(i), "Description %d".format(i), 1738177199))
+            .sign(bob_kp)
+            .run();
+    }
+
+    val initial_tasks = get_tasks(bob, 0, 4);
+
+    assert_equals(initial_tasks.pointer, 4);
+    assert_equals(initial_tasks.todos.size(), 4);
+    val last_tasks = get_tasks(bob, initial_tasks.pointer, 4);
+    assert_equals(last_tasks.pointer, 5);
+    assert_equals(last_tasks.todos.size(), 1);
+
+    // Get today's tasks and status tasks
+    val pending_tasks = get_task_by_status(bob, "PENDING", 0, 5);
+    assert_equals(pending_tasks.total, 5);
+
+    rell.test.tx()
+        .op(ft_auth_operation_for(bob))
+        .op(
+            update_task(
+                pending_tasks.todos[0].rowid.to_integer(),
+                "New Title",
+                "Description Also changed",
+                1738177199,
+                "COMPLETED"
+            )
+        )
+        .sign(bob_kp)
+        .run();
+    val pending_tasks_2 = get_task_by_status(bob, "PENDING", 0, 5);
+    assert_equals(pending_tasks_2.total, 4);
+
+    rell.test.tx()
+        .op(ft_auth_operation_for(bob))
+        .op(update_status(pending_tasks.todos[1].rowid.to_integer(), "COMPLETED"))
+        .sign(bob_kp)
+        .run();
+
+    val pending_tasks_3 = get_task_by_status(bob, "PENDING", 0, 5);
+    assert_equals(pending_tasks_3.total, 3);
+
+    val today_tasks = get_today_tasks(bob, 1738098000, 1738184399, 0, 5);
+    assert_equals(today_tasks.pointer, 5);
+}
+
+function test_verification() {
+    rell.test.tx()
+        .op(create_user("Alice", alice))
+        .op(create_user("Bob", bob)).run();
+
+    // Bob can create todo task
+    rell.test.tx()
+        .op(ft_auth_operation_for(bob))
+        .op(create_task("Verified user", "descibe my task", 1738052560000))
+        .sign(bob_kp)
+        .run();
+    
+    // Bob cannot impersonate alice
+    rell.test.tx()
+        .op(ft_auth_operation_for(alice))
+        .op(create_task("My malicous task", "Desription of task", 1738052560000))
+        .sign(bob_kp)
+        .run_must_fail();
+
+    // Alice cannot edit bob todo task(Alice cannot impersonate bob)
+    val todos = todo @* { };
+    rell.test.tx()
+        .op(ft_auth_operation_for(alice))
+        .op(
+            update_task(
+                todos[0].rowid.to_integer(),
+                "New Title",
+                "Description Also changed",
+                1738052560000,
+                "PENDING"
+            )
+        )
+        .sign(alice_kp)
+        .run_must_fail();
+    // Alice cannot delete bob todo task(Alice cannot impersonate bob)
+
+    rell.test.tx()
+        .op(ft_auth_operation_for(alice))
+        .op(delete_task(todos[0].rowid.to_integer()))
+        .sign(alice_kp)
+        .run_must_fail();
+    
+    // Charlie cannot create todo task since he does not exist
+    val f2 = rell.test.tx()
+        .op(create_task("My secret task", "My secret task description", 1738052560000))
+        .sign(charlie_kp)
+        .run_must_fail();
+    assert_true(f2.message.contains("Expected at least two operations"));
+}

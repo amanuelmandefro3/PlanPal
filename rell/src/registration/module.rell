@@ -1,0 +1,12 @@
+module;
+
+import ^.todo.*;
+import lib.ft4.accounts.strategies.open;
+import lib.ft4.accounts.strategies. { register_account };
+
+operation register_user(name) {
+    val account = register_account();
+    create user ( name, account.id, account );
+    // val user = create user ( name, account.id, account );
+    // create follower ( user = user, follower = user );
+}

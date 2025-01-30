@@ -1,0 +1,8 @@
+struct todo_dto {
+    rowid;
+    user: struct<user>;
+    title: text;
+    description: text;
+    status;
+    due_date: timestamp;
+}

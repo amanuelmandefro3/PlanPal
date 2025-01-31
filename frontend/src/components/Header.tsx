@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 
 export function Header() {
   const [greeting, setGreeting] = useState("")
-  const username = "John" // This would come from your auth system
+  
 
   useEffect(() => {
     const hour = new Date().getHours()
@@ -16,7 +16,7 @@ export function Header() {
     <div className="flex  flex-col items-start  px-6 pb-2 space-y-2">
       <div className="flex flex-col gap-1">
         <h2 className="text-2xl font-semibold tracking-tight">
-          {greeting}, {username}
+          {greeting}
         </h2>
         <p className="text-sm text-muted-foreground">
           {new Date().toLocaleDateString("en-US", {

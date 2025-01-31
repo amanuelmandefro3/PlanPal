@@ -22,7 +22,7 @@ function test_create_entities() {
         .op(create_task("title", "description", 1738263599))
         .sign(alice_kp)
         .run();
-    assert_equals(todo @ { } ( @sum 1 ), 1);
+    assert_equals(task @ { } ( @sum 1 ), 1);
 }
 
 function test_core_functionality_of_tasks() {
@@ -39,13 +39,13 @@ function test_core_functionality_of_tasks() {
             .run();
     }
 
-    val initial_tasks = get_tasks(bob, 0, 4);
+    val initial_tasks = get_tasks(bob, 0, 4, "ASC");
 
     assert_equals(initial_tasks.pointer, 4);
-    assert_equals(initial_tasks.todos.size(), 4);
-    val last_tasks = get_tasks(bob, initial_tasks.pointer, 4);
+    assert_equals(initial_tasks.tasks.size(), 4);
+    val last_tasks = get_tasks(bob, initial_tasks.pointer, 4, "ASC");
     assert_equals(last_tasks.pointer, 5);
-    assert_equals(last_tasks.todos.size(), 1);
+    assert_equals(last_tasks.tasks.size(), 1);
 
     // Get today's tasks and status tasks
     val pending_tasks = get_task_by_status(bob, "PENDING", 0, 5);
@@ -55,7 +55,7 @@ function test_core_functionality_of_tasks() {
         .op(ft_auth_operation_for(bob))
         .op(
             update_task(
-                pending_tasks.todos[0].rowid.to_integer(),
+                pending_tasks.tasks[0].rowid.to_integer(),
                 "New Title",
                 "Description Also changed",
                 1738177199,
@@ -69,7 +69,7 @@ function test_core_functionality_of_tasks() {
 
     rell.test.tx()
         .op(ft_auth_operation_for(bob))
-        .op(update_status(pending_tasks.todos[1].rowid.to_integer(), "COMPLETED"))
+        .op(update_status(pending_tasks.tasks[1].rowid.to_integer(), "COMPLETED"))
         .sign(bob_kp)
         .run();
 
@@ -100,12 +100,12 @@ function test_verification() {
         .run_must_fail();
 
     // Alice cannot edit bob todo task(Alice cannot impersonate bob)
-    val todos = todo @* { };
+    val tasks = task @* { };
     rell.test.tx()
         .op(ft_auth_operation_for(alice))
         .op(
             update_task(
-                todos[0].rowid.to_integer(),
+                tasks[0].rowid.to_integer(),
                 "New Title",
                 "Description Also changed",
                 1738052560000,
@@ -118,7 +118,7 @@ function test_verification() {
 
     rell.test.tx()
         .op(ft_auth_operation_for(alice))
-        .op(delete_task(todos[0].rowid.to_integer()))
+        .op(delete_task(tasks[0].rowid.to_integer()))
         .sign(alice_kp)
         .run_must_fail();
     

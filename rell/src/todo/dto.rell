@@ -1,4 +1,4 @@
-struct todo_dto {
+struct task_dto {
     rowid;
     user: struct<user>;
     title: text;

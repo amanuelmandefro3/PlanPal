@@ -1,18 +1,18 @@
-"use client"
-import { Header } from "@/components/Header"
-import { useQuery } from "@/context/hooks"
-import { useSessionContext } from "@/context/ContextProvider"
-import { TaskList } from "@/components/TaskList"
-import { useEffect, useState } from "react"
+"use client";
+import { Header } from "@/components/Header";
+import { useQuery } from "@/context/hooks";
+import { useSessionContext } from "@/context/ContextProvider";
+import { TaskList } from "@/components/TaskList";
+import { useEffect, useState } from "react";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
-import { AddTaskDialog } from "@/components/AddTaskForm"
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { AddTaskDialog } from "@/components/AddTaskForm";
 
 export type User = {
   name: string;
@@ -31,25 +31,27 @@ export type TaskDto = {
 
 export type GetPostsReturnType = {
   pointer: number;
-  todos: TaskDto[];
+  tasks: TaskDto[];
   total: number;
 };
 
 export default function HomePage() {
-  const session = useSessionContext()
+  const session = useSessionContext();
   const accountId = session?.account.id;
   const [sortOrder, setSortOrder] = useState<"ASC" | "DESC">("ASC");
   const [currentPage, setCurrentPage] = useState(0);
   const tasksPerPage = 10;
 
   const { result: allTasks, reload } = useQuery<GetPostsReturnType>(
-    "get_tasks", 
-    accountId ? { 
-      user_id: accountId, 
-      pointer: currentPage * tasksPerPage, 
-      n_tasks: tasksPerPage,
-      sort: sortOrder
-    } : undefined
+    "get_tasks",
+    accountId
+      ? {
+          user_id: accountId,
+          pointer: currentPage * tasksPerPage,
+          n_tasks: tasksPerPage,
+          sort: sortOrder,
+        }
+      : undefined
   );
 
   const totalPages = allTasks ? Math.ceil(allTasks.total / tasksPerPage) : 0;
@@ -59,8 +61,8 @@ export default function HomePage() {
       reload();
     };
 
-    window.addEventListener('task-added', handleTaskAdded);
-    return () => window.removeEventListener('task-added', handleTaskAdded);
+    window.addEventListener("task-added", handleTaskAdded);
+    return () => window.removeEventListener("task-added", handleTaskAdded);
   }, [reload]);
 
   // Add effect to reload data when sort order or page changes
@@ -76,6 +78,7 @@ export default function HomePage() {
     setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1));
   };
 
+  console.log(allTasks);
   return (
     <div className="h-full px-4 py-6 lg:px-8">
       <div className="flex items-center justify-between">
@@ -95,11 +98,11 @@ export default function HomePage() {
       </div>
       <AddTaskDialog />
       <h1 className="text-2xl font-semibold mb-6 px-6">All Tasks</h1>
-      <TaskList tasks={allTasks?.todos ?? []} />
-      
+      <TaskList tasks={allTasks?.tasks?? []} />
+
       {totalPages >= 2 && (
         <div className="flex items-center justify-center gap-4 mt-6">
-          <Button 
+          <Button
             onClick={handlePreviousPage}
             disabled={currentPage === 0}
             variant="outline"
@@ -109,7 +112,7 @@ export default function HomePage() {
           <span>
             Page {currentPage + 1} of {totalPages}
           </span>
-          <Button 
+          <Button
             onClick={handleNextPage}
             disabled={currentPage >= totalPages - 1}
             variant="outline"
@@ -119,5 +122,5 @@ export default function HomePage() {
         </div>
       )}
     </div>
-  )
+  );
 }

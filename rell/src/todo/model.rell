@@ -10,7 +10,7 @@ entity user {
     key account;
 }
 
-entity todo {
+entity task {
     timestamp: timestamp = op_context.last_block_time;
     mutable title: text;
     mutable description: text;

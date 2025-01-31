@@ -3,43 +3,43 @@ query get_tasks(
     pointer: integer,
     n_tasks: integer,
     sort: text
-): (total: integer, pointer: integer,  todos: list<todo_dto>) {
+): (total: integer, pointer: integer,  tasks: list<task_dto>) {
     val user = require_user(user_id);
-    val total = todo @* { todo.user == user } ( @ sum 1 )[0];
+    val total = task @* { .user == user } ( @ sum 1 )[0];
     if (sort == "ASC") {
-        val todos = todo @* { todo.user == user } (
-            @sort @omit todo.due_date,
-            todo_dto (
+        val tasks = task @* { .user == user } (
+            @sort @omit .due_date,
+            task_dto (
                 .rowid,
                 .title,
                 .description,
                 .status,
                 .due_date,
-                user = todo.user.to_struct()
+                user = task.user.to_struct()
             )
         ) offset pointer limit n_tasks;
         return (
             total = total,
-            pointer = pointer + todos.size(),
-            todos = todos
+            pointer = pointer + tasks.size(),
+            tasks = tasks
         );
     } else {
-        val todos = todo @* { todo.user == user } (
-            @sort_desc @omit todo.due_date,
-            todo_dto (
+        val tasks = task @* { .user == user } (
+            @sort_desc @omit .due_date,
+            task_dto (
                 .rowid,
                 .title,
                 .description,
                 .status,
                 .due_date,
-                user = todo.user.to_struct()
+                user = task.user.to_struct()
             )
         ) offset pointer limit n_tasks;
 
         return (
             total = total,
-            pointer = pointer + todos.size(),
-            todos = todos
+            pointer = pointer + tasks.size(),
+            tasks = tasks
         );
     }
 }
@@ -50,46 +50,46 @@ query get_today_tasks(
     day_end: timestamp,
     pointer: integer,
     n_tasks: integer,
-): (total:integer, pointer: integer, todos: list<todo_dto> ) {
+): (total:integer, pointer: integer, tasks: list<task_dto> ) {
     val user = require_user(user_id);
     // val current_time: timestamp = context.last_block_time;
     // val start_timestamp: timestamp = current_time - (current_time % 86400000);
     // val end_timestamp: timestamp = start_timestamp + 86400000 - 1;
 
-    val todos = todo @* { todo.user == user, todo.due_date >= day_start, todo.due_date <= day_end } (
-        @sort @omit todo.due_date,
-        todo_dto (
+    val tasks = task @* { .user == user, .due_date >= day_start, .due_date <= day_end } (
+        @sort @omit .due_date,
+        task_dto (
             .rowid,
             .title,
             .description,
             .status,
             .due_date,
-            user = todo.user.to_struct()
+            user = task.user.to_struct()
         )
     ) offset pointer limit n_tasks;
 
-    val total = todo @* { todo.user == user, todo.due_date >= day_start, todo.due_date <= day_end } ( @ sum 1 )[0];
+    val total = task @* { .user == user, .due_date >= day_start, .due_date <= day_end } ( @ sum 1 )[0];
 
     return (
         total = total,
-        pointer = pointer + todos.size(),
-        todos = todos
+        pointer = pointer + tasks.size(),
+        tasks = tasks
     );
 }
 
 query get_task(
     user_id: byte_array,
     task_id: integer
-): todo_dto {
+): task_dto {
     val user = require_user(user_id);
-    val todo = todo @ { .rowid == rowid(task_id), todo.user == user } (
-        todo_dto (
+    val todo = task @ { .rowid == rowid(task_id), .user == user } (
+        task_dto (
             .rowid,
             .title,
             .description,
             .status,
             .due_date,
-            user = todo.user.to_struct()
+            user = task.user.to_struct()
         )
     );
 
@@ -101,50 +101,50 @@ query get_task_by_status(
     status_front: text,
     pointer: integer,
     n_tasks: integer
-): (total: integer, pointer: integer, todos: list<todo_dto>) {
+): (total: integer, pointer: integer, tasks: list<task_dto>) {
 
     val user = require_user(user_id);
 
     if (status_front == "PENDING") {
         print("I am here flag it out ");
-        val todos = todo @* { todo.user == user, todo.status == status.PENDING } (
-            @sort @omit todo.due_date,
-            todo_dto (
+        val tasks = task @* { task.user == user, .status == status.PENDING } (
+            @sort @omit .due_date,
+            task_dto (
                 .rowid,
                 .title,
                 .description,
                 .status,
                 .due_date,
-                user = todo.user.to_struct()
+                user = task.user.to_struct()
             )
         ) offset pointer limit n_tasks;
 
-        val total = todo @* { todo.user == user, todo.status == status.PENDING } ( @ sum 1 )[0];
+        val total = task @* { .user == user, .status == status.PENDING } ( @ sum 1 )[0];
 
         return (
             total = total,
-            pointer = pointer + todos.size(),
-            todos = todos
+            pointer = pointer + tasks.size(),
+            tasks = tasks
         );
     } else {
-        val todos = todo @* { todo.user == user, todo.status == status.COMPLETED } (
-            @sort @omit todo.due_date,
-            todo_dto (
+        val tasks = task @* { .user == user, .status == status.COMPLETED } (
+            @sort @omit task.due_date,
+            task_dto (
                 .rowid,
                 .title,
                 .description,
                 .status,
                 .due_date,
-                user = todo.user.to_struct()
+                user = task.user.to_struct()
             )
         ) offset pointer limit n_tasks;
 
-        val total = todo @* { todo.user == user, todo.status == status.COMPLETED } ( @ sum 1 )[0];
+        val total = task @* { .user == user, .status == status.COMPLETED } ( @ sum 1 )[0];
 
         return (
             total = total,
-            pointer = pointer + todos.size(),
-            todos = todos
+            pointer = pointer + tasks.size(),
+            tasks = tasks
         );
     }
 }
@@ -154,25 +154,25 @@ query get_task_upcoming_days(
     next_day: integer,
     pointer: integer,
     n_tasks: integer,
-): (total: integer, pointer: integer, todos: list<todo_dto>) {
+): (total: integer, pointer: integer, tasks: list<task_dto>) {
     val user = require_user(user_id);
-    val todos = todo @* { todo.user == user, todo.due_date >= next_day } (
-        @sort @omit todo.due_date,
-        todo_dto (
+    val tasks = task @* { .user == user, .due_date >= next_day } (
+        @sort @omit .due_date,
+        task_dto (
             .rowid,
             .title,
             .description,
             .status,
             .due_date,
-            user = todo.user.to_struct()
+            user = .user.to_struct()
         )
     ) offset pointer limit n_tasks;
 
-    val total = todo @* { todo.user == user, todo.due_date >= next_day } ( @ sum 1 )[0];
+    val total = task @* { .user == user, .due_date >= next_day } ( @ sum 1 )[0];
 
     return (
         total = total,
-        pointer = pointer + todos.size(),
-        todos = todos
+        pointer = pointer + tasks.size(),
+        tasks = tasks
     );
 }

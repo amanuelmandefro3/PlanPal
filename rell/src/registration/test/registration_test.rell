@@ -65,7 +65,7 @@ function test_evm_registration() {
         .op(create_task("Task Title", "Task Description", 1738052560000))
         .sign(alice_session_1)
         .run();
-    assert_equals(todo @ { } ( @sum 1 ), 1);
+    assert_equals(task @ { } ( @sum 1 ), 1);
 
 
 
@@ -87,16 +87,16 @@ function test_evm_registration() {
         .op(create_task("Second Task Title", "Second Task Description", 1738052560000))
         .sign(alice_session_2)
         .run();
-    assert_equals(todo @ { } ( @sum 1 ), 2);
+    assert_equals(task @ { } ( @sum 1 ), 2);
 
 
     // Testing updates for todo tasks 
-    val todos = todo @* { };
+    val tasks = task @* { };
     rell.test.tx()
         .op(ft_auth_operation_for(alice_session_2.pub))
         .op(
             update_task(
-                todos[1].rowid.to_integer(),
+                tasks[1].rowid.to_integer(),
                 "New Title",
                 "Description Also changed",
                 1738052560000,
@@ -105,7 +105,7 @@ function test_evm_registration() {
         )
         .sign(alice_session_2)
         .run();
-    val todo = todo @ { todos[1].rowid };
+    val todo = task @ { tasks[1].rowid };
     assert_equals(todo.title, "New Title");
 
     // charlie cannot edit alice todo task
@@ -113,7 +113,7 @@ function test_evm_registration() {
         .op(ft_auth_operation_for(charlie_session_1.pub))
         .op(
             update_task(
-                todos[0].rowid.to_integer(),
+                tasks[0].rowid.to_integer(),
                 "New Title",
                 "Description Also changed",
                 1738052560000,
@@ -127,16 +127,16 @@ function test_evm_registration() {
 
     rell.test.tx()
         .op(ft_auth_operation_for(alice_session_2.pub))
-        .op(delete_task(todos[0].rowid.to_integer()))
+        .op(delete_task(tasks[0].rowid.to_integer()))
         .sign(alice_session_2)
         .run();
-    // val todo = todo @ { todos[1].rowid };
-    assert_equals(todo @ { } ( @sum 1 ), 1);
+    // val todo = todo @ { tasks[1].rowid };
+    assert_equals(task @ { } ( @sum 1 ), 1);
 
     // Charlie cannot delete task that created by another user
     rell.test.tx()
         .op(ft_auth_operation_for(charlie_session_1.pub))
-        .op(delete_task(todos[1].rowid.to_integer()))
+        .op(delete_task(tasks[1].rowid.to_integer()))
         .sign(charlie_session_1)
         .run_must_fail();
 }

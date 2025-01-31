@@ -68,8 +68,8 @@ export function AddTaskDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild className="w-full">
-        <Button className="w-full relative border-none before:absolute before:inset-0 before:border before:border-dashed before:border-black dark:before:border-white before:rounded-md bg-transparent hover:bg-transparent text-black dark:text-white text-start pl-4">
+      <DialogTrigger asChild className="">
+        <Button className="w-[98.5%] relative border-none before:absolute before:inset-0 before:border before:border-dashed before:border-black dark:before:border-white before:rounded-md bg-transparent hover:bg-transparent text-black dark:text-white text-start py-4 px-6 ml-6">
           <Plus className="mr-2 h-4 w-4" />
           Add Task
         </Button>

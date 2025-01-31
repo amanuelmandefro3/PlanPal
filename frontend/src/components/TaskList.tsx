@@ -70,7 +70,7 @@ export function TaskList({ tasks, isLoading, error }: TaskListProps) {
 
   if (!tasks?.length) {
     return (
-      <div className="px-6 py-8 text-center">
+      <div className="px-6 py- text-center">
         <p className="text-muted-foreground">No tasks found</p>
       </div>
     )
@@ -122,11 +122,11 @@ export function TaskList({ tasks, isLoading, error }: TaskListProps) {
   }
 
   return (
-    <div className="px-6">
+    <div className="px-6 space-y-2">
       {tasks.map((task) => (
         <div
           key={task.rowid}
-          className="flex items-center justify-between p-4 hover:bg-accent hover:text-accent-foreground rounded-lg group cursor-pointer"
+          className="flex items-center justify-between px-4 py-2 hover:bg-accent hover:text-accent-foreground rounded-lg group cursor-pointer"
           onClick={() => setSelectedTask(task)}
         >
           <div className="flex items-center space-x-4">

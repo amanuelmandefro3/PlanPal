@@ -1,7 +1,5 @@
 "use client"
-
 import { useState, useEffect } from "react"
-import { AddTaskDialog } from "./AddTaskForm"
 
 export function Header() {
   const [greeting, setGreeting] = useState("")
@@ -15,7 +13,7 @@ export function Header() {
   }, [])
 
   return (
-    <div className="flex  flex-col items-start  p-6 space-y-4">
+    <div className="flex  flex-col items-start  px-6 pb-2 space-y-2">
       <div className="flex flex-col gap-1">
         <h2 className="text-2xl font-semibold tracking-tight">
           {greeting}, {username}
@@ -29,7 +27,6 @@ export function Header() {
           })}
         </p>
       </div>
-      <AddTaskDialog />
     </div>
   )
 }
